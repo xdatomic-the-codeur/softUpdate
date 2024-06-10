@@ -21,23 +21,22 @@ def config():
  
 def update(v):
     commande = "curl -s https://raw.githubusercontent.com/xdatomic-the-codeur/softUpdate/main/version.json"
-    versionVerify = subprocess.run(commande, capture_output=True, text=True, shell=True)
-    if versionVerify.returncode == 0:
-        #print(versionVerify.stdout)
-        versionVerify = json.loads(versionVerify.stdout)
-        print("Last version : "+ versionVerify["idk"]['version'])
-        if(v != versionVerify["idk"]['version']):
+    version_info = subprocess.run(commande, capture_output=True, text=True, shell=True)
+    if version_info.returncode == 0:
+        version_info = json.loads(version_info.stdout)
+        print("Last version : "+ version_info["idk"]['version'])
+        if(v != version_info["idk"]['version']):
             print("Updating...")
-            update = versionVerify["idk"]['codeUrl']
+            update = version_info["idk"]['codeUrl']
             os.remove("./index.py")
             commande = "curl -s "+ update + " -o index.py"
-            versionVerify = subprocess.run(commande, capture_output=True, text=True, shell=True)
-            if versionVerify.returncode == 0:
+            version_info = subprocess.run(commande, capture_output=True, text=True, shell=True)
+            if version_info.returncode == 0:
                 #Update json file
                 conf = open("./conf/config.json", "r")
                 data = json.load(conf)
                 conf.close()
-                data["version"] = versionVerify["idk"]["version"]
+                data["version"] = version_info["idk"]["version"]
  
                 conf = open("./conf/config.json", "w+")
                 conf.write(json.dumps(data))
@@ -46,7 +45,7 @@ def update(v):
                 print("Update finished ! Please restart python file.")
             else:
                 print("Erreur:")
-                print(versionVerify.stderr)
+                print(version_info.stderr)
         else:
             print("Program is up to date")
  
