@@ -35,14 +35,12 @@ def update(v):
             versionVerify = subprocess.run(commande, capture_output=True, text=True, shell=True)
             if versionVerify.returncode == 0:
                 #Update json file
-                conf = open("./conf/config.json", "r")
-                data = json.load(conf)
-                conf.close()
-                data["version"] = version_info["version"]
+                with open("./conf/config.json", "r") as conf:
+                    data = json.load(conf)
+                    data["version"] = version_info["version"]
 
-                conf = open("./conf/config.json", "w+")
-                conf.write(json.dumps(data))
-                conf.close()
+                with open("./conf/config.json", "w") as conf:
+                    json.dump(data, conf, indent=4)
 
                 print("Update finished ! Please restart python file.")
             else:
