@@ -2,14 +2,14 @@ from pathlib import Path
 import os
 import json
 import subprocess
- 
+
 confFile = Path("./conf/config.json")
 confData = {
     "name": "idk",
     "version": "0.0.1",
-    "updateUrl": "https://pastebin.com/pB5QSv52"
+    "updateUrl": "https://raw.githubusercontent.com/xdatomic-the-codeur/softUpdate/main/version.json"
 }
- 
+
 def config():
     #Config
     print("Configuration...")
@@ -18,17 +18,18 @@ def config():
     with open("./conf/config.json", "x") as conf:
         json.dump(confData, conf, indent=4)
     print("Conf file successfuly created")
- 
+
 def update(v):
-    commande = "curl -s https://pastebin.com/raw/pB5QSv52"
+    commande = "curl -s https://raw.githubusercontent.com/xdatomic-the-codeur/softUpdate/main/version.json"
     versionVerify = subprocess.run(commande, capture_output=True, text=True, shell=True)
     if versionVerify.returncode == 0:
         #print(versionVerify.stdout)
-        versionVerify = json.loads(versionVerify.stdout)
-        print("Last version : "+ versionVerify['version'])
-        if(v != versionVerify['version']):
+        #versionVerify = json.loads(versionVerify.stdout)
+        version_info = json.loads(versionVerify.stdout)
+        print("Last version : "+ version_info['version'])
+        if(v != version_info['version']):
             print("Updating...")
-            update = versionVerify['codeUrl']
+            update = version_info['codeUrl']
             os.remove("./index.py")
             commande = "curl -s "+ update + " -o index.py"
             versionVerify = subprocess.run(commande, capture_output=True, text=True, shell=True)
@@ -37,19 +38,19 @@ def update(v):
                 conf = open("./conf/config.json", "r")
                 data = json.load(conf)
                 conf.close()
-                data["version"] = versionVerify["version"]
- 
+                data["version"] = version_info["version"]
+
                 conf = open("./conf/config.json", "w+")
                 conf.write(json.dumps(data))
                 conf.close()
- 
+
                 print("Update finished ! Please restart python file.")
             else:
                 print("Erreur:")
                 print(versionVerify.stderr)
         else:
             print("Program is up to date")
- 
+
 if confFile.is_file():
     print("Program is config")
     configFile = open('./conf/config.json')
@@ -60,3 +61,4 @@ if confFile.is_file():
 else:
     print("Program not config")
     config()
+
