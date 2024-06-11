@@ -40,7 +40,7 @@ conf_file = Path("./conf/config.json")
 
 # Default configuration data
 default_conf_data = {
-    "name": "idk",
+    "name": "WifiGraber",
     "version": "0.0.1",
     "updateUrl": "https://raw.githubusercontent.com/xdatomic-the-codeur/softUpdate/main/version.json"
 }
