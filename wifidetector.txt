@@ -1,0 +1,144 @@
+from pathlib import Path
+from prettytable import PrettyTable
+import os
+import json
+import subprocess
+
+"""                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           
+WWWWWWWW                           WWWWWWWW iiii     ffffffffffffffff    iiii       DDDDDDDDDDDDD                                     tttt                                                           tttt                                               
+W::::::W                           W::::::Wi::::i   f::::::::::::::::f  i::::i      D::::::::::::DDD                               ttt:::t                                                        ttt:::t                                               
+W::::::W                           W::::::W iiii   f::::::::::::::::::f  iiii       D:::::::::::::::DD                             t:::::t                                                        t:::::t                                               
+W::::::W                           W::::::W        f::::::fffffff:::::f             DDD:::::DDDDD:::::D                            t:::::t                                                        t:::::t                                               
+ W:::::W           WWWWW           W:::::Wiiiiiii  f:::::f       ffffffiiiiiii        D:::::D    D:::::D     eeeeeeeeeeee    ttttttt:::::ttttttt        eeeeeeeeeeee        ccccccccccccccccttttttt:::::ttttttt       ooooooooooo   rrrrr   rrrrrrrrr   
+  W:::::W         W:::::W         W:::::W i:::::i  f:::::f             i:::::i        D:::::D     D:::::D  ee::::::::::::ee  t:::::::::::::::::t      ee::::::::::::ee    cc:::::::::::::::ct:::::::::::::::::t     oo:::::::::::oo r::::rrr:::::::::r  
+   W:::::W       W:::::::W       W:::::W   i::::i f:::::::ffffff        i::::i        D:::::D     D:::::D e::::::eeeee:::::eet:::::::::::::::::t     e::::::eeeee:::::ee c:::::::::::::::::ct:::::::::::::::::t    o:::::::::::::::or:::::::::::::::::r 
+    W:::::W     W:::::::::W     W:::::W    i::::i f::::::::::::f        i::::i        D:::::D     D:::::De::::::e     e:::::etttttt:::::::tttttt    e::::::e     e:::::ec:::::::cccccc:::::ctttttt:::::::tttttt    o:::::ooooo:::::orr::::::rrrrr::::::r
+     W:::::W   W:::::W:::::W   W:::::W     i::::i f::::::::::::f        i::::i        D:::::D     D:::::De:::::::eeeee::::::e      t:::::t          e:::::::eeeee::::::ec::::::c     ccccccc      t:::::t          o::::o     o::::o r:::::r     r:::::r
+      W:::::W W:::::W W:::::W W:::::W      i::::i f:::::::ffffff        i::::i        D:::::D     D:::::De:::::::::::::::::e       t:::::t          e:::::::::::::::::e c:::::c                   t:::::t          o::::o     o::::o r:::::r     rrrrrrr
+       W:::::W:::::W   W:::::W:::::W       i::::i  f:::::f              i::::i        D:::::D     D:::::De::::::eeeeeeeeeee        t:::::t          e::::::eeeeeeeeeee  c:::::c                   t:::::t          o::::o     o::::o r:::::r            
+        W:::::::::W     W:::::::::W        i::::i  f:::::f              i::::i        D:::::D    D:::::D e:::::::e                 t:::::t    tttttte:::::::e           c::::::c     ccccccc      t:::::t    tttttto::::o     o::::o r:::::r            
+         W:::::::W       W:::::::W        i::::::if:::::::f            i::::::i     DDD:::::DDDDD:::::D  e::::::::e                t::::::tttt:::::te::::::::e          c:::::::cccccc:::::c      t::::::tttt:::::to:::::ooooo:::::o r:::::r            
+          W:::::W         W:::::W         i::::::if:::::::f            i::::::i     D:::::::::::::::DD    e::::::::eeeeeeee        tt::::::::::::::t e::::::::eeeeeeee   c:::::::::::::::::c      tt::::::::::::::to:::::::::::::::o r:::::r            
+           W:::W           W:::W          i::::::if:::::::f            i::::::i     D::::::::::::DDD       ee:::::::::::::e          tt:::::::::::tt  ee:::::::::::::e    cc:::::::::::::::c        tt:::::::::::tt oo:::::::::::oo  r:::::r            
+            WWW             WWW           iiiiiiiifffffffff            iiiiiiii     DDDDDDDDDDDDD            eeeeeeeeeeeeee            ttttttttttt      eeeeeeeeeeeeee      cccccccccccccccc          ttttttttttt     ooooooooooo    rrrrrrr            
+"""
+
+# Configuration file path
+conf_file = Path("./conf/config.json")
+
+# Default configuration data
+default_conf_data = {
+    "name": "WifiDetector",
+    "version": "0.0.1",
+    "updateUrl": "https://raw.githubusercontent.com/xdatomic-the-codeur/softUpdate/main/version.json"
+}
+
+def config():
+    print("Configuration...")
+    os.system("cls")  # Clear the terminal screen
+
+    if not conf_file.is_file():
+        # Create the configuration file with default data
+        with conf_file.open("w") as conf:
+            json.dump(default_conf_data, conf, indent=4)
+        print("Conf file successfully created")
+    else:
+        print("Configuration file already exists.")
+
+def update(current_version):
+    update_url = "https://raw.githubusercontent.com/xdatomic-the-codeur/softUpdate/main/version.json"
+
+    try:
+        update_info = subprocess.run(
+            ["curl", "-s", update_url], capture_output=True, text=True
+        )
+        update_info.check_returncode()  # Raise an exception on non-zero exit code
+
+        version_data = json.loads(update_info.stdout)
+        latest_version = version_data["WifiDetector"]["version"]
+
+        if current_version != latest_version:
+            print("Updating...")
+
+            update_code_url = version_data["WifiDetector"]["codeUrl"]
+
+            try:
+                # Use shutil.move or similar for secure file replacement
+                os.replace("./wifidetector.py", "./wifidetector.py.bak")  # Backup current file (optional)
+                subprocess.run(
+                    ["curl", "-s", update_code_url, "-o", "index.py"], capture_output=True, text=True
+                ).check_returncode()  # Raise an exception on non-zero exit code
+
+                # Update the version in the configuration file
+                with conf_file.open("r") as conf:
+                    data = json.load(conf)
+                data["version"] = latest_version
+                with conf_file.open("w") as conf:
+                    json.dump(data, conf, indent=4)
+
+                print("Update finished! Please restart the program.")
+
+            except subprocess.CalledProcessError as e:
+                print("Error during update download:", e.stderr)
+                # Consider restoring the backup if necessary
+
+        else:
+            print("Program is up to date.")
+
+    except subprocess.CalledProcessError as e:
+        print("Error checking for updates:", e.stderr)
+
+def getWifi():
+    try:
+        allWifi = subprocess.run(
+                ["netsh", "wlan", "show", "network"], capture_output=True, text=True, encoding='cp850'
+            )
+        allWifi.check_returncode()  # Raise an exception on non-zero exit code
+        allWifi = allWifi.stdout
+        allWifi = allWifi.replace("\xa0", " ")
+        allWifi = allWifi.split("\n")
+
+        wifi = []
+
+        for line in allWifi:
+            if "SSID" in line:
+                line = line.split(':')
+                wifi.append(line[1])
+                #print(line[1])
+
+        #print(allWifi.split("\n"))
+        return wifi
+    except:
+        print("Error fetching wifi")
+
+def main():
+    """The main program entry point.
+
+    Checks for configuration file existence and calls config() or update() accordingly.
+    """
+
+    if conf_file.is_file():
+        print("Program is configured.")
+        with conf_file.open("r") as conf:
+            config_data = json.load(conf)
+        current_version = config_data["version"]
+        print("Program version:", current_version)
+        #update(current_version)
+        os.system("cls")
+    else:
+        print("Program not configured.")
+        config()
+    
+    i = 0
+    table = PrettyTable()
+    table.field_names = ["id", "SSID"]
+
+    wifi = getWifi()
+
+    for ssid in wifi:
+        table.add_row([i, ssid])
+        i = i+1
+    print(table)
+
+if __name__ == "__main__":
+    main()
