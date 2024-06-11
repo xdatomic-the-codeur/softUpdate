@@ -102,7 +102,7 @@ def update(current_version):
     except subprocess.CalledProcessError as e:
         print("Error checking for updates:", e.stderr)
 
-def wifi():
+def wifi()->list:
     try:
         # Try decoding with UTF-8 encoding
         wifi_data = (subprocess.check_output(["netsh", "wlan", "show", "profiles"]).decode("utf-8").split("\n"))
