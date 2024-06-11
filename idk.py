@@ -49,6 +49,7 @@ default_conf_data = {
 def config():
     print("Configuration...")
     os.system("clear")  # Clear the terminal screen
+    conf_file.parent.mkdir(parents=True, exist_ok=True)
 
     if not conf_file.is_file():
         # Create the configuration file with default data
