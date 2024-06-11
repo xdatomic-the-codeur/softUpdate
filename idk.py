@@ -1,7 +1,39 @@
 from pathlib import Path
+from prettytable import PrettyTable
 import os
 import json
 import subprocess
+
+
+"""
+
+                                                                                                                                                          
+                                                                                                                                      bbbbbbbb            
+WWWWWWWW                           WWWWWWWW iiii     ffffffffffffffff    iiii         GGGGGGGGGGGGG                                   b::::::b            
+W::::::W                           W::::::Wi::::i   f::::::::::::::::f  i::::i     GGG::::::::::::G                                   b::::::b            
+W::::::W                           W::::::W iiii   f::::::::::::::::::f  iiii    GG:::::::::::::::G                                   b::::::b            
+W::::::W                           W::::::W        f::::::fffffff:::::f         G:::::GGGGGGGG::::G                                    b:::::b            
+ W:::::W           WWWWW           W:::::Wiiiiiii  f:::::f       ffffffiiiiiii G:::::G       GGGGGGrrrrr   rrrrrrrrr   aaaaaaaaaaaaa   b:::::bbbbbbbbb    
+  W:::::W         W:::::W         W:::::W i:::::i  f:::::f             i:::::iG:::::G              r::::rrr:::::::::r  a::::::::::::a  b::::::::::::::bb  
+   W:::::W       W:::::::W       W:::::W   i::::i f:::::::ffffff        i::::iG:::::G              r:::::::::::::::::r aaaaaaaaa:::::a b::::::::::::::::b 
+    W:::::W     W:::::::::W     W:::::W    i::::i f::::::::::::f        i::::iG:::::G    GGGGGGGGGGrr::::::rrrrr::::::r         a::::a b:::::bbbbb:::::::b
+     W:::::W   W:::::W:::::W   W:::::W     i::::i f::::::::::::f        i::::iG:::::G    G::::::::G r:::::r     r:::::r  aaaaaaa:::::a b:::::b    b::::::b
+      W:::::W W:::::W W:::::W W:::::W      i::::i f:::::::ffffff        i::::iG:::::G    GGGGG::::G r:::::r     rrrrrrraa::::::::::::a b:::::b     b:::::b
+       W:::::W:::::W   W:::::W:::::W       i::::i  f:::::f              i::::iG:::::G        G::::G r:::::r           a::::aaaa::::::a b:::::b     b:::::b
+        W:::::::::W     W:::::::::W        i::::i  f:::::f              i::::i G:::::G       G::::G r:::::r          a::::a    a:::::a b:::::b     b:::::b
+         W:::::::W       W:::::::W        i::::::if:::::::f            i::::::i G:::::GGGGGGGG::::G r:::::r          a::::a    a:::::a b:::::bbbbbb::::::b
+          W:::::W         W:::::W         i::::::if:::::::f            i::::::i  GG:::::::::::::::G r:::::r          a:::::aaaa::::::a b::::::::::::::::b 
+           W:::W           W:::W          i::::::if:::::::f            i::::::i    GGG::::::GGG:::G r:::::r           a::::::::::aa:::ab:::::::::::::::b  
+            WWW             WWW           iiiiiiiifffffffff            iiiiiiii       GGGGGG   GGGG rrrrrrr            aaaaaaaaaa  aaaabbbbbbbbbbbbbbbb   
+                                                                                                                                                          
+                                                                                                                                                          
+                                                                                                                                                          
+                                                                                                                                                          
+                                                                                                                                                          
+                                                                                                                                                          
+                                                                                                                                                          
+
+"""
 
 # Configuration file path
 conf_file = Path("./conf/config.json")
@@ -37,12 +69,12 @@ def update(current_version):
         update_info.check_returncode()  # Raise an exception on non-zero exit code
 
         version_data = json.loads(update_info.stdout)
-        latest_version = version_data["idk"]["version"]
+        latest_version = version_data["WifiGraber"]["version"]
 
         if current_version != latest_version:
             print("Updating...")
 
-            update_code_url = version_data["idk"]["codeUrl"]
+            update_code_url = version_data["WifiGraber"]["codeUrl"]
 
             try:
                 # Use shutil.move or similar for secure file replacement
@@ -70,6 +102,39 @@ def update(current_version):
     except subprocess.CalledProcessError as e:
         print("Error checking for updates:", e.stderr)
 
+def wifi():
+    try:
+        # Try decoding with UTF-8 encoding
+        wifi_data = (subprocess.check_output(["netsh", "wlan", "show", "profiles"]).decode("utf-8").split("\n"))
+    except UnicodeDecodeError:
+        # If UTF-8 fails, try using 'latin-1' encoding
+        wifi_data = (subprocess.check_output(["netsh", "wlan", "show", "profiles"]).decode("latin-1").split("\n"))
+
+    profiles = []
+    for line in wifi_data:
+        if "Profil Tous les utilisateurs" in line:
+            profile_name = line.split(":")[1][1:-1]
+            profiles.append(profile_name)
+
+    return profiles
+
+def wifi_password(ssid: str) -> str:
+    encodings = ["latin-1", "utf-8", "cp1252"]
+    for encoding in encodings:
+        try:
+            command_output = subprocess.check_output(
+                ["netsh", "wlan", "show", "profile", f"name=\"{ssid}\"", "key=clear"],
+                encoding=encoding,
+            )
+            lines = command_output.split("\n")
+            for line in lines:
+                if "Contenu de la cl" in line:
+                    password = line.partition(":")[2].strip()
+                    return password
+        except (UnicodeDecodeError, subprocess.CalledProcessError):
+            continue  # Try the next encoding or next SSID
+
+    return "N/A"
 
 def main():
     """The main program entry point.
@@ -84,9 +149,19 @@ def main():
         current_version = config_data["version"]
         print("Program version:", current_version)
         update(current_version)
+        os.system("cls")
     else:
         print("Program not configured.")
         config()
+    
+    table = PrettyTable()
+    i=0
+    table.field_names = ["Id", "SSID", "Password"]
+    all_wifi = wifi()
+    for ssid in all_wifi:
+        table.add_row([i, ssid, wifi_password(ssid)])
+        i=i+1
+    print(table)
 
 
 if __name__ == "__main__":
