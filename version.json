@@ -8,5 +8,10 @@
         "name": "WifiDetector",
         "version": "0.0.1",
         "codeUrl": "https://raw.githubusercontent.com/xdatomic-the-codeur/softUpdate/main/wifidetector.txt"
+    },
+    "dl-youtube": {
+	"name": "dl-youtube",
+	"version": "0.0.1",
+	"codeUrl": "https://raw.githubusercontent.com/xdatomic-the-codeur/softUpdate/main/dl-youtube.txt"
     }
 }
