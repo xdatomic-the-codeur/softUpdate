@@ -1,0 +1,191 @@
+from __future__ import unicode_literals
+import requests
+import yt_dlp as youtube_dl
+
+from pathlib import Path
+from prettytable import PrettyTable
+import os
+import json
+import subprocess
+import sys
+import html
+
+# Configuration file path
+conf_file = Path("./conf/config.json")
+
+# Default configuration data
+default_conf_data = {
+    "name": "dl-youtube",
+    "version": "0.0.1",
+    "updateUrl": "https://raw.githubusercontent.com/xdatomic-the-codeur/softUpdate/main/version.json"
+}
+
+required_lib = {"yt_dlp", "prettytable", "requests"}
+
+class MyLogger(object):
+    def debug(self, msg):
+        pass
+
+    def warning(self, msg):
+        pass
+
+    def error(self, msg):
+        print(msg)
+
+def my_hook(d):
+    if d['status'] == 'finished':
+        print('Done downloading, now converting ...')
+
+download_folder = 'musiques'
+
+Path(download_folder).mkdir(parents=True, exist_ok=True)
+
+ydl_opts = {
+    'format': 'bestaudio/best',
+    'outtmpl': os.path.join(download_folder, '%(title)s.%(ext)s'),
+    'postprocessors': [{
+        'key': 'FFmpegExtractAudio',
+        'preferredcodec': 'mp3',
+        'preferredquality': '192',
+    }],
+    'logger': MyLogger(),
+    'progress_hooks': [my_hook],
+}
+
+
+def config():
+    print("Configuration...")
+    os.system("cls")  # Clear the terminal screen
+
+    #Check library and install missing
+    for library in required_lib:
+        try:
+            __import__(library)
+            print(library + " est installé")
+        except:
+            print(library + ' n\'est pas installé')
+            subprocess.check_call([sys.executable, "-m", "pip", "install", library])
+
+    if not conf_file.is_file():
+        # Create the configuration file with default data
+        with conf_file.open("w") as conf:
+            json.dump(default_conf_data, conf, indent=4)
+        print("Conf file successfully created")
+    else:
+        print("Configuration file already exists.")
+
+def update(current_version):
+    update_url = "https://raw.githubusercontent.com/xdatomic-the-codeur/softUpdate/main/version.json"
+
+    try:
+        update_info = subprocess.run(
+            ["curl", "-s", update_url], capture_output=True, text=True
+        )
+        update_info.check_returncode()  # Raise an exception on non-zero exit code
+
+        version_data = json.loads(update_info.stdout)
+        latest_version = version_data["dl-youtube"]["version"]
+
+        if current_version != latest_version:
+            print("Updating...")
+
+            update_code_url = version_data["dl-youtube"]["codeUrl"]
+
+            try:
+                # Use shutil.move or similar for secure file replacement
+                os.replace("./index.py", "./index.py.bak")  # Backup current file (optional)
+                subprocess.run(
+                    ["curl", "-s", update_code_url, "-o", "index.py"], capture_output=True, text=True
+                ).check_returncode()  # Raise an exception on non-zero exit code
+
+                # Update the version in the configuration file
+                with conf_file.open("r") as conf:
+                    data = json.load(conf)
+                data["version"] = latest_version
+                with conf_file.open("w") as conf:
+                    json.dump(data, conf, indent=4)
+
+                print("Update finished! Please restart the program.")
+
+            except subprocess.CalledProcessError as e:
+                print("Error during update download:", e.stderr)
+                # Consider restoring the backup if necessary
+
+        else:
+            print("Program is up to date.")
+
+    except subprocess.CalledProcessError as e:
+        print("Error checking for updates:", e.stderr)
+
+url = "https://youtube.googleapis.com/youtube/v3/search"
+
+def query():
+    title = str(input("Titre ou lien de la musique : "))
+
+    if(title.startswith("https://youtube.com/watch?v=")):
+        querystring = {"part":"snippet","maxResults":"25","q":title,"type":"video","key":"AIzaSyBj80njWs0KcgD6A44y6cDdG2qinfvbZ4U"}
+
+        payload = ""
+        headers = {"User-Agent": "Insomnia/2023.5.6"}
+
+
+        response = requests.request("GET", url, data=payload, headers=headers, params=querystring)
+
+        datas = json.loads(response.text)
+
+        x = PrettyTable()
+        x.field_names = ["Numéro", "Titre", "lien", "lien_miniature"]
+        i=0
+        liens = []
+
+        for music in datas["items"]:
+            title = music["snippet"]["title"]
+            title = html.unescape(title)
+            if(len(title)>95):
+                title = title[:92] + "..."
+            x.add_row([i, title, "https://youtube.com/watch?v=" + music['id']['videoId'], music['snippet']['thumbnails']["default"]["url"]])
+            liens.append("https://youtube.com/watch?v=" + music['id']['videoId'])
+            i = i+1
+
+        print(x)
+
+
+
+        music_to_dl = int(input(f'Musique à télécharger (0-{i}; -1 pour annuler): '))
+        if(music_to_dl>=0):
+            print(f'La musique {music_to_dl} vas être téléchargée') 
+            with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+                ydl.download([liens[music_to_dl]])
+    else:
+        print("La musique vas être téléchargée")
+        with youtube_dl.YoutubeDL(ydl_opts) as ydl:
+            ydl.download(title)
+    
+    dl = input("Télécharger une autre musique (y/n) ? ").lower().strip() == 'y'
+    if dl == True:
+        query()
+
+
+def main():
+    """The main program entry point.
+
+    Checks for configuration file existence and calls config() or update() accordingly.
+    """
+
+    if conf_file.is_file():
+        print("Program is configured.")
+        with conf_file.open("r") as conf:
+            config_data = json.load(conf)
+        current_version = config_data["version"]
+        print("Program version:", current_version)
+        update(current_version)
+        os.system("cls")
+
+        #Program
+        query()
+    else:
+        print("Program not configured.")
+        config()
+
+if __name__ == "__main__":
+    main()
