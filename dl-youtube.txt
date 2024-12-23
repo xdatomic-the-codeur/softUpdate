@@ -122,16 +122,23 @@ url = "https://youtube.googleapis.com/youtube/v3/search"
 def query():
     title = str(input("Titre ou lien de la musique : "))
 
-    if(title.startswith("https://youtube.com/watch?v=")):
+    if not title.startswith("https://youtube.com/watch?v="):
         querystring = {"part":"snippet","maxResults":"25","q":title,"type":"video","key":"AIzaSyBj80njWs0KcgD6A44y6cDdG2qinfvbZ4U"}
 
         payload = ""
         headers = {"User-Agent": "Insomnia/2023.5.6"}
 
-
         response = requests.request("GET", url, data=payload, headers=headers, params=querystring)
 
+        if response.status_code != 200:
+            print("Erreur lors de la requête:", response.status_code, response.text)
+            return
+
         datas = json.loads(response.text)
+
+        if "items" not in datas:
+            print("Aucune vidéo trouvée.")
+            return
 
         x = PrettyTable()
         x.field_names = ["Numéro", "Titre", "lien", "lien_miniature"]
@@ -149,8 +156,6 @@ def query():
 
         print(x)
 
-
-
         music_to_dl = int(input(f'Musique à télécharger (0-{i}; -1 pour annuler): '))
         if(music_to_dl>=0):
             print(f'La musique {music_to_dl} vas être téléchargée') 
@@ -159,7 +164,7 @@ def query():
     else:
         print("La musique vas être téléchargée")
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
-            ydl.download(title)
+            ydl.download([title])
     
     dl = input("Télécharger une autre musique (y/n) ? ").lower().strip() == 'y'
     if dl == True:
